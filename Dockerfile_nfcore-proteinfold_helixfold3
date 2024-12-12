@@ -1,0 +1,31 @@
+FROM nvidia/cuda:12.0.0-cudnn-devel-ubuntu20.04
+
+# Copy the environment.yaml file to the container
+COPY ./environment.yaml /environment.yaml
+
+ENV LD_LIBRARY_PATH="/opt/miniforge/lib:/usr/local/cuda-12.0/lib64:$LD_LIBRARY_PATH"
+ENV PATH="/opt/miniforge/bin:$PATH"
+
+# Set up the environment
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y wget git && \
+    \
+	# Install Miniforge
+    wget "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh" -O Miniforge3-Linux-x86_64.sh && \
+    bash Miniforge3-Linux-x86_64.sh -b -p /opt/miniforge && \
+    rm Miniforge3-Linux-x86_64.sh && \
+    \
+	# Set up the environment and install dependencies
+    /opt/miniforge/bin/mamba env create -f /environment.yaml && \
+    /opt/miniforge/bin/mamba run -n helixfold python3 -m pip install paddlepaddle-gpu==2.6.1.post120 -f https://www.paddlepaddle.org.cn/whl/linux/mkl/avx/stable.html && \
+    \
+	# Clean up unnecessary files
+    apt-get autoremove -y && apt-get remove --purge -y wget git && apt-get clean -y && \
+    rm -rf /var/lib/apt/lists/* /root/.cache && \
+    /opt/miniforge/bin/mamba clean --all --force-pkgs-dirs -y
+
+# Default command to run in the container
+ENTRYPOINT [ "mamba", "run", "--name", "helixfold" ]
+
+# This allows the container to take any arguments passed
+CMD [ "bash" ]
