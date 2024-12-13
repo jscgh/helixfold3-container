@@ -1,1 +1,5 @@
 *.bak
+.nextflow*
+make.sh
+*output*/
+*work*/
